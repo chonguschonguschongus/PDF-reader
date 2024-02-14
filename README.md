@@ -34,7 +34,7 @@ This project levarages OpenAI embeddings and Langchain to train OpenAI's GPT mod
 
 1. Clone the repository to your local machine:
    ```bash
-   git clone https://github.com/chonguschonguschongus/kobegpt.git
+   git clone https://github.com/chonguschonguschongus/PDF-reader.git
    ```
 
 2. Navigate to project directory
