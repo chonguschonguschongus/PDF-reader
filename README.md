@@ -61,8 +61,13 @@ Open terminal and run `streamlit run pdfreader.py`
 ### Uploading your own documents
 Click the "Browse files" button to browse locally and select your desired document.
 
+![browse button](https://github.com/chonguschonguschongus/PDF-reader/blob/main/images/browse%20files.png)
+
 ### Ask away!
 Ask any questions you might have and the chatbot will reply you with information from your document!
+
+![example image](https://github.com/chonguschonguschongus/PDF-reader/blob/main/images/example.png)
+
 
 ## Acknowledgements 
 -  [OpenAI](https://openai.com/product) for providing the GPT model.
