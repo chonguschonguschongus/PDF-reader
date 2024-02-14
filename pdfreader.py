@@ -22,7 +22,6 @@ if file is not None:
     text = ""
     for page in pdf_reader.pages:
         text += page.extract_text()
-        #st.write(text)
 
 #Break it into chunks
     text_splitter = RecursiveCharacterTextSplitter(
@@ -32,8 +31,6 @@ if file is not None:
         length_function=len
     )
     chunks = text_splitter.split_text(text)
-    #st.write(chunks)
-
 
     # generating embedding
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -47,7 +44,6 @@ if file is not None:
     # do similarity search
     if user_question:
         match = vector_store.similarity_search(user_question)
-        #st.write(match)
 
         #define the LLM
         llm = ChatOpenAI(
@@ -58,7 +54,6 @@ if file is not None:
         )
 
         #output results
-        #chain -> take the question, get relevant document, pass it to the LLM, generate the output
         chain = load_qa_chain(llm, chain_type="stuff")
         response = chain.run(input_documents = match, question = user_question)
         st.write(response)
