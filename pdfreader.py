@@ -4,6 +4,7 @@ import os
 import streamlit as st
 from PyPDF2 import PdfReader
 
+from langchain.schema import HumanMessage
 from langchain.schema import Document
 from langchain.vectorstores import Chroma
 from langchain.retrievers import ParentDocumentRetriever
@@ -13,7 +14,6 @@ from langchain.storage import InMemoryStore
 
 from langchain.embeddings.openai import OpenAIEmbeddings
 
-from langchain.chains.question_answering import load_qa_chain
 from langchain_community.chat_models import ChatOpenAI
 
 import chromadb.api
@@ -30,6 +30,26 @@ with  st.sidebar:
     st.title("Your Documents")
     file = st.file_uploader(" Upload a PDf file and start asking questions", type="pdf")
 
+    my_llm = ChatOpenAI(
+        openai_api_key = OPENAI_API_KEY,
+        temperature = 0.6,
+        max_tokens = 1000,
+        model_name = "gpt-4o-mini"
+    )
+        
+def get_llm_response(llm, query):
+    message = [HumanMessage(content=query)]
+    response = llm(messages = message)
+    return response.content
+
+def detect_intent(user_query):
+    prompt = f"What is the user asking? Options: 'summarize', 'explain', 'specific info', 'general info'\nUser query: {user_query}"
+    return get_llm_response(my_llm, prompt)  # Assume the LLM can classify intent based on the query
+
+def reformulate_query(intent, user_query):
+    prompt = f"Reformulate the following query for '{intent}': {user_query}"
+    return get_llm_response(my_llm, prompt)
+    
 #Extract the text
 if file is not None:
     pdf_reader = PdfReader(file)
@@ -62,21 +82,18 @@ if file is not None:
 
 
     # get user question
-    user_question = st.text_input("Type Your question here")
+    user_query = st.text_input("Type Your question here")
 
     # do similarity search
-    if user_question:
-        match = vectorstore.similarity_search(user_question)
+    if user_query:
+        intent = detect_intent(user_query)
+    
+        reformulated_query = reformulate_query(intent, user_query)
+    
+        search_results = vectorstore.similarity_search(reformulated_query)
+        
+        final_prompt = f"User query: {user_query}\nBased on the following information, please {intent}:\n{search_results}"
+        
+        answer = get_llm_response(my_llm, final_prompt)
 
-        #define the LLM
-        llm = ChatOpenAI(
-            openai_api_key = OPENAI_API_KEY,
-            temperature = 0.6,
-            max_tokens = 1000,
-            model_name = "gpt-4o-mini"
-        )
-
-        #output results
-        chain = load_qa_chain(llm, chain_type="stuff")
-        response = chain.run(input_documents = match, question = user_question)
-        st.write(response)
+        st.write(answer)
