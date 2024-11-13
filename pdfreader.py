@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -7,7 +8,9 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain_community.chat_models import ChatOpenAI
 
 
-OPENAI_API_KEY = "sk-PHzh89333124kjfd38493jjfdk84035i5Z" #Pass your key here
+import os
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 
 #Upload PDF files
 st.header("PDF Reader")
