@@ -6,22 +6,24 @@ from PyPDF2 import PdfReader
 
 from langchain.schema import HumanMessage
 from langchain.schema import Document
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import OpenAIEmbeddings
+
 from langchain.retrievers import ParentDocumentRetriever
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.storage import InMemoryStore
 
-from langchain.embeddings.openai import OpenAIEmbeddings
-
-from langchain_community.chat_models import ChatOpenAI
+from langchain_community.embeddings import OpenAIEmbeddings
 
 import chromadb.api
 
-chromadb.api.client.SharedSystemClient.clear_system_cache() #no idea why but this fixed the Chroma issue
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+tokenizer = AutoTokenizer.from_pretrained("nvidia/Llama-3.1-Nemotron-70B-Instruct-HF")
+model = AutoModelForCausalLM.from_pretrained("nvidia/Llama-3.1-Nemotron-70B-Instruct-HF")
+
+chromadb.api.client.SharedSystemClient.clear_system_cache() #no idea why but this fixed the Chroma issue
 
 #Upload PDF files
 st.header("PDF Reader")
@@ -29,26 +31,28 @@ st.header("PDF Reader")
 with  st.sidebar:
     st.title("Your Documents")
     file = st.file_uploader(" Upload a PDf file and start asking questions", type="pdf")
-
-    my_llm = ChatOpenAI(
-        openai_api_key = OPENAI_API_KEY,
-        temperature = 0.6,
-        max_tokens = 1000,
-        model_name = "gpt-4o-mini"
-    )
         
-def get_llm_response(llm, query):
-    message = [HumanMessage(content=query)]
-    response = llm(messages = message)
-    return response.content
+def get_llm_response(prompt, max_length=150):
+    inputs = tokenizer(prompt, return_tensors="pt")  # Convert text to token IDs
+    outputs = model.generate(
+        inputs["input_ids"],
+        max_length=max_length,
+        num_return_sequences=1,
+        pad_token_id=tokenizer.eos_token_id,  # Handle padding appropriately
+        temperature=0.7,  # Control randomness in output
+        top_p=0.9  # Nucleus sampling for diversity
+    )
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)  # Decode to text
+    return response
+
 
 def detect_intent(user_query):
     prompt = f"What is the user asking? Options: 'summarize', 'explain', 'specific info', 'general info'\nUser query: {user_query}"
-    return get_llm_response(my_llm, prompt)  # Assume the LLM can classify intent based on the query
+    return get_llm_response(prompt)  # Assume the LLM can classify intent based on the query
 
 def reformulate_query(intent, user_query):
     prompt = f"Reformulate the following query for '{intent}': {user_query}"
-    return get_llm_response(my_llm, prompt)
+    return get_llm_response(prompt)
     
 #Extract the text
 if file is not None:
@@ -94,6 +98,6 @@ if file is not None:
         
         final_prompt = f"User query: {user_query}\nBased on the following information, please {intent}:\n{search_results}"
         
-        answer = get_llm_response(my_llm, final_prompt)
+        answer = get_llm_response(final_prompt)
 
         st.write(answer)
